@@ -312,6 +312,243 @@ of these interfaces are also created to make it possible to generate composable 
                 </div>
             </div>
             
+            <div class="panel panel-default">
+                <div class="panel-heading adr-accepted">
+                    <h4 class="panel-title">
+                        <a data-toggle="collapse" href="#collapse6">6. Simplified enterprise login</a>
+
+                        
+                        <i class="adr-icon fas fa-fw fa-check"></i>
+                        
+
+                    </h4>
+                </div>
+                <div id="collapse6" class="panel-collapse collapse">
+                    <div class="panel-body"><h1>6. Simplified enterprise login</h1>
+<p>Date: 2025-01-23</p>
+<h2>Status</h2>
+<p>Accepted</p>
+<h2>Context</h2>
+<p>Starting (potentially) from Android 4.12.x the app will support the new enterprise login flows, this means in practice that the app needs to support both flows current/old.</p>
+<h3>The current flow (old)</h3>
+<p>Customers configure their setup manually in their backend.
+The user experience for this makes the user selects manually which flow they must use by going to the correct screens, i.e. going to the tab and select login with SSO code, or login with email, or use a deeplink to load the on premise configuration, and then select the correct flow.</p>
+<h3>The new flow</h3>
+<p>Customers, via team settings and Back-office tools, will be able to load this config to facilitate the decision of which flow the user must use. This will make the app, in conjunction with the backend, decide for the user which path/flow they must use to login by just having one input field, “email or SSO code”.
+The adoption won’t be automatically via deprecation, hence the need to support both flows for some time. To clarify a bit how this looks in practice for the code we have, how this will be implemented, a high level look of the two flows living together, the following diagram can be used.</p>
+<h2>Decision</h2>
+<p>We will keep both flows, the current as-is and the new one, being the app able to decide which one to use based on the configuration received from the backend.</p>
+<pre><code class="language-mermaid">%%{
+  init: {
+    'theme': 'neutral'
+  }
+}%%
+
+flowchart LR
+    z((App loads&lt;/br&gt; BE/API context)) --&gt; di
+    di{BE supports &lt;/br&gt;API &gt;= 8 ?}:::someclass -- Yes --&gt; a1
+    di -- No&lt;/br&gt;OR Authenticated Proxy --&gt; b1
+    classDef someclass fill:#f96
+    subgraph new_flow
+      a0@{ shape: braces, label: &quot;These flows are selected by the app and the BE&quot; }
+      a1[StartLoginScreen &lt;/br&gt;'Enter email or SSO code'] -- looks like SSO code --&gt; a2[Go to SSO flow path 6-7] 
+      a1 -- Looks like an email? --&gt; a3[BE replies which path to go 1-4]
+    end
+    subgraph current_flow
+      b0@{ shape: braces, label: &quot;These flows are selected manually by the user&quot; }
+      b1[WelcomeScreen] --&gt; b2[LoginEmailScreen]
+      b1 --&gt; b3[LoginWithSSOCodeScreen]
+    end
+</code></pre>
+<h2>Consequences</h2>
+<ul>
+<li>The code base will have some duplication for some time, but this will be removed when the old flow is deprecated.</li>
+<li>To select the correct flow, the app will need to load the BE context, based on the API version, and then decide which flow to use.</li>
+<li>The navigation, entry point will need to be dynamic, based on the flow selected.</li>
+</ul>
+</div>
+                </div>
+            </div>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading adr-accepted">
+                    <h4 class="panel-title">
+                        <a data-toggle="collapse" href="#collapse7">7. Introducing UIAutomator for integrated testing</a>
+
+                        
+                        <i class="adr-icon fas fa-fw fa-check"></i>
+                        
+
+                    </h4>
+                </div>
+                <div id="collapse7" class="panel-collapse collapse">
+                    <div class="panel-body"><h1>7. Introducing UIAutomator for integrated testing</h1>
+<p>Date: 2025-05-06</p>
+<h2>Status</h2>
+<p>Accepted</p>
+<h2>Context</h2>
+<p>QA wants to migrate from Appium to a new framework to run tests and being closed to the source code that we are testing.
+The tests nowadays are running on an emulator with an apk. After meeting the QA we evaluated options, Espresso and UIAutomator.</p>
+<h2>Decision</h2>
+<p>UIAutomator seems to be the best option for us, as it is a framework that is already in the Android SDK and it is more flexible than Espresso, this last one is more limited to the app under test because of mocks and stubs.
+We will create a new module(s) for testing purposes, and we will use the UIAutomator framework to run the tests, common logic can be extracted and shared between tests modules in case we want to parallelize the tests in the future.</p>
+<h2>Consequences</h2>
+<p>The new structure of the project will be as follows:</p>
+<pre><code>wire-android
+├── app
+│   ├── ...
+├── core
+│   ├── ...
+├── features
+│   ├── ...
+├── tests
+│   ├── ...
+│   ├── testsCore
+│   ├── testsSupport
+└── build.gradle.kts
+</code></pre>
+</div>
+                </div>
+            </div>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading adr-accepted">
+                    <h4 class="panel-title">
+                        <a data-toggle="collapse" href="#collapse8">8. Introducing Enterprise Mobility Management (EMM) Capabilities</a>
+
+                        
+                        <i class="adr-icon fas fa-fw fa-check"></i>
+                        
+
+                    </h4>
+                </div>
+                <div id="collapse8" class="panel-collapse collapse">
+                    <div class="panel-body"><h1>8. Introducing Enterprise Mobility Management (EMM) Capabilities</h1>
+<p>Date: 2025-10-15</p>
+<h2>Status</h2>
+<p>Accepted</p>
+<h2>Context</h2>
+<p>As a requirement for some of our business cases, we need to introduce Enterprise Mobility Management (EMM) capabilities into our Android application. EMM solutions help organizations manage and secure mobile devices, applications, and data.
+To implement EMM capabilities, we want to add support for the following features:</p>
+<ul>
+<li>Backend setup using managed configurations, the ability for the app to connect by default to a specific backend.</li>
+<li>SSO Capabilities, allowing users to authenticate with a default sso code configuration.</li>
+</ul>
+<h2>Decision</h2>
+<p>This was implemented by following the guidelines provided by Google for adding EMM capabilities to Android applications. The steps taken were:</p>
+<ol>
+<li><strong>Manifest Changes</strong>: Updated the AndroidManifest.xml to include the necessary permissions and metadata</li>
+<li><strong>Managed Configurations</strong>: Implemented support for managed configurations to allow IT administrators to configure the app remotely.</li>
+<li><strong>SSO Integration</strong>: Integrated SSO capabilities to allow seamless authentication for users within an enterprise environment.</li>
+<li><strong>Testing</strong>: Conducted thorough testing to ensure that the EMM features work as</li>
+</ol>
+<h2>Consequences</h2>
+<ul>
+<li>The app now support EMM capabilities, by making use of <code>RestrictionsManager</code> component to retrieve managed configurations and apply them accordingly.</li>
+<li>The app reads the managed configurations and applies them to set the default backend and SSO settings.</li>
+<li>The app resolves using DI the backend and SSO settings from the managed configurations if available, otherwise it falls back to the app default settings.</li>
+</ul>
+<pre><code class="language-mermaid">---
+config:
+layout: dagre
+theme: neutral
+---
+flowchart TD
+A([&quot;App Start&quot;]) --&gt; B[&quot;ManagedConfigurationsManager&quot;]
+B --&gt; C{&quot;Managed Configurations Available?&quot;}
+C -- Yes --&gt; D[&quot;Retrieve Managed Configs&quot;]
+D --&gt; E{&quot;Valid Configuration?&quot;}
+E -- Yes --&gt; F[&quot;Use as DI Defaults&quot;]
+E -- No/Error --&gt; G[&quot;Load default.json&quot;]
+C -- No --&gt; G
+G --&gt; H[&quot;Use App Defaults via DI&quot;]
+P([&quot;App Resume&quot;]) --&gt; B
+R([&quot;Broadcast Receiver Triggered&quot;]) --&gt; L[&quot;ManagedConfigurationReceiver&quot;]
+L --&gt; B
+F --&gt; J[&quot;ViewModels Inject non scoped values from ManagedConfigurationsManager&quot;]
+H --&gt; J
+J@{ shape: card}
+style A fill:#C8E6C9
+style B fill:#BBDEFB
+style P fill:#C8E6C9
+style R fill:#C8E6C9
+style J fill:#BBDEFB
+</code></pre>
+</div>
+                </div>
+            </div>
+            
+            <div class="panel panel-default">
+                <div class="panel-heading adr-accepted">
+                    <h4 class="panel-title">
+                        <a data-toggle="collapse" href="#collapse9">9. Automated Release Notes Management for Play Store Deployments</a>
+
+                        
+                        <i class="adr-icon fas fa-fw fa-check"></i>
+                        
+
+                    </h4>
+                </div>
+                <div id="collapse9" class="panel-collapse collapse">
+                    <div class="panel-body"><h1>9. Automated Release Notes Management for Play Store Deployments</h1>
+<p>Date: 2025-11-07</p>
+<h2>Status</h2>
+<p>Accepted</p>
+<h2>Context</h2>
+<p>Previously, managing release notes for Play Store deployments was a manual and error-prone process. The workflow lacked automation for:</p>
+<ul>
+<li>Validating that version-specific release notes exist before deployment</li>
+<li>Ensuring release notes comply with Play Store's 500 character limit</li>
+<li>Copying version-specific release notes to the default.txt files required for deployment</li>
+<li>Providing clear feedback about which release notes will be published</li>
+</ul>
+<p>This manual process increased the risk of deploying with incorrect or missing release notes, and made it difficult to catch validation errors early in the CI/CD pipeline.</p>
+<h2>Decision</h2>
+<p>We introduced an automated release notes preparation script (<code>scripts/prepare-release-notes.sh</code>) that is integrated into our CI/CD workflows. The script:</p>
+<ol>
+<li><strong>Extracts the current version</strong> from <code>AndroidCoordinates.kt</code> to determine which release notes to use</li>
+<li><strong>Validates version-specific files exist</strong> - fails the build if <code>app/src/main/play/release-notes/{lang}/{version}.txt</code> files are missing</li>
+<li><strong>Copies version files to default.txt</strong> - automatically prepares the files needed for Play Store deployment</li>
+<li><strong>Validates character counts</strong> - ensures release notes don't exceed Play Store's 500 character limit</li>
+<li><strong>Provides preview</strong> - displays the exact release notes that will be deployed</li>
+</ol>
+<p>The script is integrated into:</p>
+<ul>
+<li><code>build-production.yml</code> workflow for production releases</li>
+<li><code>build-main-push.yml</code> workflow for main branch deployments</li>
+<li><code>build-develop-push.yml</code> workflow for develop branch deployments</li>
+<li><code>deploy.yml</code> workflow for general deployments</li>
+</ul>
+<h2>Consequences</h2>
+<p><strong>Positive:</strong></p>
+<ul>
+<li>Release notes validation happens early in CI/CD, preventing deployment of apps with missing or invalid release notes</li>
+<li>Character limit validation prevents Play Store submission failures</li>
+<li>Automated copying eliminates manual file management errors</li>
+<li>Clear preview output ensures visibility into what will be deployed</li>
+<li>Version-specific release notes files create a historical record of all releases</li>
+<li>Consistent process across all deployment workflows</li>
+</ul>
+<p><strong>Considerations:</strong></p>
+<ul>
+<li>Release notes must be created as version-specific files (e.g., <code>4.16.0.txt</code>) before deployment</li>
+<li>The script requires Python 3 for character counting functionality</li>
+<li>Failed validation blocks the entire CI/CD pipeline (by design, to prevent bad deployments)</li>
+<li>Changes to version naming in <code>AndroidCoordinates.kt</code> must be reflected in release notes file naming</li>
+</ul>
+<p><strong>File Structure:</strong></p>
+<pre><code>app/src/main/play/release-notes/
+├── en-US/
+│   ├── 4.16.0.txt    (version-specific)
+│   └── default.txt   (auto-generated)
+└── de-DE/
+    ├── 4.16.0.txt    (version-specific)
+    └── default.txt   (auto-generated)
+</code></pre>
+</div>
+                </div>
+            </div>
+            
         </div>
         <footer>
             Generated with &lt;3 using ADR Viewer
